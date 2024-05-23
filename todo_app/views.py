@@ -1,47 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 from flask import Blueprint, current_app, request, jsonify, make_response
-from sqlalchemy.orm import Session
-from models import db, Category, Task
-from services import handle_categories, handle_file_upload
+from .models import Category, Task
+from .extensions import db
+from .services import (handle_categories,
+                                   handle_file_upload,
+                                   task_to_dict,
+                                   category_to_dict,
+                                   validate_task_data)
 
 # Создание объекта tasks_blueprint для маршрутов и представлений, связанных с задачами в приложении Flask
 tasks_blueprint = Blueprint('tasks', __name__)
-
-
-def task_to_dict(task):
-    """
-    Преобразует объект задачи в словарь для сериализации в JSON.
-
-    Args:
-        task (Task): Объект задачи.
-
-    Returns:
-        dict: Словарь с данными о задаче.
-    """
-    return {
-        'id': task.id,
-        'title': task.title,
-        'description': task.description,
-        'date_created': task.date_created.isoformat() if task.date_created else None,
-        'file_path': task.file_path,
-        'categories': [category.name for category in task.categories]
-    }
-
-
-def category_to_dict(category):
-    """
-    Преобразует объект категории в словарь для сериализации в JSON.
-
-    Args:
-        category (Category): Объект категории.
-
-    Returns:
-        dict: Словарь с данными о категории.
-    """
-    return {'id': category.id, 'name': category.name}
 
 
 @tasks_blueprint.route('/tasks', methods=['POST'])
@@ -54,17 +24,15 @@ def create_task():
     """
 
     data = request.get_json()
-    # Валидация данных
-    if not data or 'title' not in data or 'description' not in data or 'categories' not in data:
-        return jsonify({'message': 'Missing data'}), 400
+    validate_task_data(data)
 
     new_task = Task(
         title=data['title'],
-        description=data['description']
+        description=data.get('description')
     )
 
     # Обработка категорий
-    handle_categories(data['categories'], new_task)
+    handle_categories(data.get('categories', []), new_task)
 
     # Обработка файла
     file_path = handle_file_upload(request, current_app.config['UPLOAD_FOLDER'])
@@ -73,13 +41,13 @@ def create_task():
 
     db.session.add(new_task)
     db.session.commit()
-    return jsonify({'message': 'Task created successfully', 'id': new_task.id}), 201
+    return jsonify(task_to_dict(new_task)), 201
 
 
 @tasks_blueprint.route('/tasks', methods=['GET'])
 def get_tasks():
     category_filter = request.args.get('category')
-    sort_by = request.args.get('sort', 'date_created')
+    sort_by = request.args.get('sort', 'created_at')
     order = request.args.get('order', 'asc')
 
     query = Task.query
@@ -89,11 +57,8 @@ def get_tasks():
         query = query.join(Task.categories).filter(Category.name == category_filter)
 
     # Сортировка
-    if sort_by and hasattr(Task, sort_by):
-        if order == 'desc':
-            query = query.order_by(db.desc(getattr(Task, sort_by)))
-        else:
-            query = query.order_by(getattr(Task, sort_by))
+    if hasattr(Task, sort_by):
+        query = query.order_by(getattr(Task, sort_by).desc() if order == 'desc' else getattr(Task, sort_by))
 
     # Ограничение на количество результатов
     tasks = query.limit(100).all()
@@ -112,11 +77,9 @@ def get_task(id):
     Returns:
         json: JSON-ответ с списком задач.
     """
-    session = Session(bind=db.engine)
-    task = session.get(Task, id)
+    task = db.session.get(Task, id)
     if task:
-        task_data = task_to_dict(task)
-        return jsonify({'task': task_data})
+        return jsonify(task_to_dict(task))
     return make_response('Task not found', 404)
 
 
@@ -132,32 +95,23 @@ def update_task(id):
         json: JSON-ответ с сообщением об успешном обновлении.
     """
     data = request.get_json()
+    validate_task_data(data)
 
-    if not data:
-        return jsonify({'message': 'No input data provided'}), 400
-
-    task = Task.query.get(id)
+    task = db.session.get(Task, id)
     if not task:
         return make_response('Task not found', 404)
 
-    title = data.get('title')
-    description = data.get('description')
-    categories = data.get('categories')
-
-    if title is not None:
-        task.title = title
-    if description is not None:
-        task.description = description
-
-    if categories is not None:
-        handle_categories(categories, task)
-
+    if 'title' in data:
+        task.title = data['title']
+    if 'description' in data:
+        task.description = data['description']
+    handle_categories(data.get('categories', []), task)
     file_path = handle_file_upload(request, current_app.config['UPLOAD_FOLDER'])
     if file_path:
         task.file_path = file_path
 
     db.session.commit()
-    return jsonify({'message': 'Task updated successfully'})
+    return jsonify(task_to_dict(task))
 
 
 @tasks_blueprint.route('/tasks/<id>', methods=['DELETE'])
@@ -171,7 +125,7 @@ def delete_task(id):
     Returns:
         json: JSON-ответ с сообщением об успешном удалении задачи и связанного файла.
     """
-    task = Task.query.get(id)
+    task = db.session.get(Task, id)
     if task:
         if task.file_path and os.path.exists(task.file_path):
             os.remove(task.file_path)
@@ -202,7 +156,7 @@ def get_category(id):
     Returns:
         json: JSON-ответ с данными о категориях.
     """
-    category = Category.query.get(id)
+    category = db.session.get(Category, id)
     if category:
         return jsonify({'category': {'id': category.id, 'name': category.name}})
     return make_response('Category not found', 404)
@@ -241,7 +195,7 @@ def delete_category(id):
     Returns:
         json: JSON-ответ с сообщением об успешном удалении категории.
     """
-    category = Category.query.get(id)
+    category = db.session.get(Category, id)
     if category:
         db.session.delete(category)
         db.session.commit()
