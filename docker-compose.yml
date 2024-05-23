@@ -1,0 +1,35 @@
+x-flask_todo_app-variables: &flask_todo_app-env
+  DATABASE_URI: ${DATABASE_URI}
+  HOST: ${HOST}
+  PORT: ${PORT}
+  DEBUG: ${DEBUG}
+
+x-db-variables: &db-env
+  MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+  MYSQL_DATABASE: ${DATABASE_NAME}
+
+services:
+  flask_todo_app:
+    build: .
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      <<: *flask_todo_app-env
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+        <<: *db-env
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
