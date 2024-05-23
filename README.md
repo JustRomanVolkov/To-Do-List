@@ -1,5 +1,7 @@
 # RESTful Веб-Сервис
-
+ <p>
+  <a href="https://github.com/TheRomanVolkov/To-Do-List/blob/main/README_en.md">English</a> | <a href="https://github.com/TheRomanVolkov/To-Do-List/blob/main/README.md">Русский</a>
+</p> 
 Это RESTful веб-сервис, который предоставляет API для управления задачами и категориями.
 
 ## Стек технологий
