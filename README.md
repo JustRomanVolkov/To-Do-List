@@ -2,12 +2,23 @@
 
 Это RESTful веб-сервис, который предоставляет API для управления задачами и категориями.
 
+## Стек технологий
+
+Этот проект использует следующие технологии:
+
+- **Flask**: Веб-фреймворк на Python.
+- **MySQL**: Реляционная база данных, используемая для хранения данных приложения.
+- **SQLAlchemy**: ORM для работы с базой данных.
+- **Docker**: Платформа для разработки, доставки и запуска приложений в контейнерах.
+- **Docker Compose**: Инструмент для определения и запуска многоконтейнерных Docker-приложений.
+- **unittest**: Библиотека для написания и выполнения модульных тестов на Python.
+
 ## Оглавление
 
 - [Установка и настройка](#установка-и-настройка)
   - [Установка](#установка)
   - [Настройка](#настройка)
-- [Использование](#использование)
+- [Сборка и запуск ](#сборка-и-запуск)
   - [Запуск](#запуск)
 - [API Endpoints](#api-endpoints)
   - [Задачи (Tasks)](#задачи-tasks)
@@ -18,9 +29,8 @@
 - [API Ресурсы](#api-ресурсы)
   - [Задачи (Tasks)](#задачи-tasks-1)
   - [Категории (Categories)](#категории-categories-1)
+- [Тестирование](#тестирование)
 - [Автор](#автор)
-
-
 
 ## Установка и настройка
 
@@ -29,70 +39,53 @@
 1. Клонируйте репозиторий:
 
     ```bash
-    git clone https://github.com/RomanV2/To-Do-List.git
+    git clone https://github.com/TheRomanVolkov/To-Do-List.git
     cd To-Do-List
+    ```
 
 ### Настройка
-2. Установите зависимости:
+2. Настройте файл .env на основе .env.example (определите настройки базы данных и другие параметры)
+
+### Сборка и запуск
+
+3. Запустите докер-контейнеры:
 
     ```bash
-    pip install -r requirements.txt
-    
-    
-3. Создайте файл конфигурации config.py и определите настройки базы данных и другие параметры по вашему усмотрению.
-    ```bash
-    # config.py
-
-    class Config:
-        SQLALCHEMY_DATABASE_URI = 'your-database-uri'
-        # Другие настройки
-    
- 4. Создайте файл конфигурации config.py и определите настройки базы данных и другие параметры по вашему усмотрению.
-    ```bash
-    flask db init
-    flask db migrate
-    flask db upgrade    
-
-# Использование
-
-## Запуск
-  ```bash
-     app.run
-
-  ```
+    docker-compose up --build
+    ```
+Если тесты не пройдут, сборка завершится с ошибкой и образ не будет создан.
 
 Сервис будет доступен по адресу http://localhost:5000
 
-# API Endpoints
+## API Endpoints
 
-## Задачи (Tasks)
+### Задачи (Tasks)
 
-- **GET /tasks**: Получить список всех задач.
+- **GET /tasks**: Получить список всех задач с возможностью фильтрации и сортировки.
 - **POST /tasks**: Создать новую задачу.
 - **GET /tasks/<id>**: Получить информацию о задаче по её идентификатору.
 - **PUT /tasks/<id>**: Обновить информацию о задаче по её идентификатору.
 - **DELETE /tasks/<id>**: Удалить задачу по её идентификатору.
 
-## Категории (Categories)
+### Категории (Categories)
 
 - **GET /categories**: Получить список всех категорий.
 - **GET /categories/<id>**: Получить информацию о категории по её идентификатору.
 - **POST /categories**: Создать новую категорию.
 - **DELETE /categories/<id>**: Удалить категорию по её идентификатору.
 
-# Примеры запросов
+## Примеры запросов
 
-## Создание новой задачи
+### Создание новой задачи
 
 ```bash
 curl -X POST http://localhost:5000/tasks -H "Content-Type: application/json" -d "{\"title\": \"New Task\", \"description\": \"Test Description\", \"categories\": [\"Category1\"]}"
 ```
 
-## Получение списка задач
+### Получение списка задач
 ```bash
 curl -X GET http://localhost:5000/tasks
 ```
-
 
 ### API Ресурсы
 
@@ -112,8 +105,13 @@ curl -X GET http://localhost:5000/tasks
   - Ответ:
     ```json
     {
-      "message": "Задача успешно создана",
-      "id": 1
+      "id": 1,
+      "title": "Название задачи",
+      "description": "Описание задачи",
+      "created_at": "2023-12-04T12:00:00Z",
+      "updated_at": "2023-12-04T12:00:00Z",
+      "file_path": "/uploads/file.txt",
+      "categories": ["категория1", "категория2"]
     }
     ```
 
@@ -126,7 +124,8 @@ curl -X GET http://localhost:5000/tasks
       "id": 1,
       "title": "Название задачи",
       "description": "Описание задачи",
-      "date_created": "2023-12-04T12:00:00Z",
+      "created_at": "2023-12-04T12:00:00Z",
+      "updated_at": "2023-12-04T12:00:00Z",
       "file_path": "/uploads/file.txt",
       "categories": ["категория1", "категория2"]
     }
@@ -146,7 +145,13 @@ curl -X GET http://localhost:5000/tasks
   - Ответ:
     ```json
     {
-      "message": "Задача успешно обновлена"
+      "id": 1,
+      "title": "Название задачи",
+      "description": "Описание задачи",
+      "created_at": "2023-12-04T12:00:00Z",
+      "updated_at": "2023-12-04T12:00:00Z",
+      "file_path": "/uploads/file.txt",
+      "categories": ["категория1", "категория2"]
     }
     ```
 
@@ -156,7 +161,7 @@ curl -X GET http://localhost:5000/tasks
   - Ответ:
     ```json
     {
-      "message": "Задача удалена успешно"
+      "message": "Task and associated file deleted successfully"
     }
     ```
 
@@ -197,12 +202,31 @@ curl -X GET http://localhost:5000/tasks
   - Ответ:
     ```json
     {
-      "message": "Категория успешно создана",
+      "message": "Category created successfully",
       "category": {"id": 3, "name": "Новая категория"}
     }
     ```
 
+- **Удалить категорию по ID**
+  - Метод: DELETE
+  - Путь: /categories/{id}
+  - Ответ:
+    ```json
+    {
+      "message": "Category deleted successfully"
+    }
+    ```
+
+## Тестирование
+
+Для выполнения тестов используйте команду:
+
+```bash
+docker-compose run flask_todo_app python -m unittest discover
+```
+
+Это запустит все тесты, определенные в вашем приложении.
+
 ## Автор
 
 Volkov Roman
-
