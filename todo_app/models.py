@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy.orm import validates
+from .extensions import db
 
-db = SQLAlchemy()
 
 #     Связующая таблица для связи многие-ко-многим между задачами (Task) и категориями (Category).
 task_categories = db.Table('task_categories',
@@ -19,17 +19,25 @@ class Task(db.Model):
         id (int): Уникальный идентификатор задачи (первичный ключ).
         title (str): Заголовок задачи (не может быть пустым).
         description (str): Описание задачи.
-        date_created (datetime): Дата и время создания задачи (по умолчанию текущее время).
+        created_at (datetime): Дата и время создания задачи.
+        updated_at (datetime): Дата и время последнего обновления задачи.
         file_path (str): Путь к файлу, связанному с задачей.
         categories (list): Список категорий, к которым принадлежит задача.
     """
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(200))
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    file_path = db.Column(db.String(300))  # Путь к файлу
-    categories = db.relationship('Category', secondary=task_categories, lazy='subquery',
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow, default=datetime.utcnow)
+    file_path = db.Column(db.String(300))
+    categories = db.relationship('Category', secondary='task_categories', lazy='subquery',
                                  backref=db.backref('tasks', lazy=True))
+
+    @validates('title')
+    def validate_title(self, key, title):
+        if not title:
+            raise ValueError("Title is required")
+        return title
 
 
 class Category(db.Model):
@@ -42,3 +50,9 @@ class Category(db.Model):
     """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+
+    @validates('name')
+    def validate_name(self, key, name):
+        if not name:
+            raise ValueError("Name is required")
+        return name
