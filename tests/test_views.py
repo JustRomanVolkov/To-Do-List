@@ -2,13 +2,13 @@
 import unittest
 import json
 from app import create_app
-from models import db, Task, Category
+from todo_app.models import db, Task, Category
 
 
 class TestViews(unittest.TestCase):
 
     def setUp(self):
-        self.app = create_app('config.TestConfig')
+        self.app = create_app('todo_app.config.TestConfig')
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
@@ -51,8 +51,8 @@ class TestViews(unittest.TestCase):
         # Получение обновленной задачи
         response = self.client.get(f'/tasks/{task.id}')
         data = json.loads(response.data)
-        self.assertEqual(data['task']['title'], 'Updated Task')
-        self.assertEqual(data['task']['description'], 'Updated Description')
+        self.assertEqual(data['title'], 'Updated Task')
+        self.assertEqual(data['description'], 'Updated Description')
 
     def test_delete_task(self):
         # Создание задачи для удаления
@@ -88,24 +88,28 @@ class TestViews(unittest.TestCase):
         response = self.client.post('/categories', json={'name': 'NewCategory'})
         self.assertEqual(response.status_code, 201)
 
-        # Проверка, что категория добавлена
         response = self.client.get('/categories')
         data = json.loads(response.data)
         self.assertIn('NewCategory', [category['name'] for category in data['categories']])
 
     def test_delete_category(self):
-        # Создайте категорию для удаления
         category = Category(name='ToDeleteCategory')
         db.session.add(category)
         db.session.commit()
 
-        # Удалите созданную категорию
         response = self.client.delete(f'/categories/{category.id}')
         self.assertEqual(response.status_code, 200)
 
-        # Проверьте, что категория действительно удалена
         response = self.client.get(f'/categories/{category.id}')
         self.assertEqual(response.status_code, 404)
+
+    def test_create_task_without_title(self):
+        response = self.client.post('/tasks', json={'description': 'Test description', 'categories': ['General']})
+        self.assertEqual(response.status_code, 400, f"Response body: {response.data}")
+
+    def test_create_task_with_long_description(self):
+        response = self.client.post('/tasks', json={'title': 'New Task', 'description': 'a' * 201, 'categories': ['General']})
+        self.assertEqual(response.status_code, 400, f"Response body: {response.data}")
 
 
 if __name__ == '__main__':
