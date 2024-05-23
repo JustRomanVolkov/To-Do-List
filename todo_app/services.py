@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+from werkzeug.exceptions import BadRequest
 from werkzeug.utils import secure_filename
-from models import db, Category
+from .extensions import db
+from .models import Category
 
 
 def allowed_file(filename):
@@ -55,3 +57,46 @@ def handle_categories(category_names, task):
             db.session.commit()
         if category not in task.categories:
             task.categories.append(category)
+
+
+def task_to_dict(task):
+    """
+    Преобразует объект задачи в словарь для сериализации в JSON.
+
+    Args:
+        task (Task): Объект задачи.
+
+    Returns:
+        dict: Словарь с данными о задаче.
+    """
+    return {
+        'id': task.id,
+        'title': task.title,
+        'description': task.description,
+        'created_at': task.created_at.isoformat() if task.created_at else None,
+        'updated_at': task.updated_at.isoformat() if task.updated_at else None,
+        'file_path': task.file_path,
+        'categories': [category.name for category in task.categories]
+    }
+
+
+def category_to_dict(category):
+    """
+    Преобразует объект категории в словарь для сериализации в JSON.
+
+    Args:
+        category (Category): Объект категории.
+
+    Returns:
+        dict: Словарь с данными о категории.
+    """
+    return {'id': category.id, 'name': category.name}
+
+
+def validate_task_data(data):
+    if not data:
+        raise BadRequest('No input data provided')
+    if 'title' not in data or not data['title']:
+        raise BadRequest('Title is required')
+    if 'description' in data and len(data['description']) > 200:
+        raise BadRequest('Description is too long')
