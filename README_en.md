@@ -1,5 +1,7 @@
 # RESTful Web Service
-
+ <p>
+  <a href="https://github.com/TheRomanVolkov/To-Do-List/blob/main/README_en.md">English</a> | <a href="https://github.com/TheRomanVolkov/To-Do-List/blob/main/README.md">Русский</a>
+</p> 
 This is a RESTful web service that provides an API for managing tasks and categories.
 
 ## Technology Stack
